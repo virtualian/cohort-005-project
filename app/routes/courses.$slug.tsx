@@ -52,8 +52,8 @@ import { resolveCountry } from "~/lib/country.server";
 import {
   calculatePppPrice,
   getCountryTierInfo,
-  getDiscountForCountry,
 } from "~/lib/ppp";
+import { getRefundAmount } from "~/lib/refunds";
 import { parseFormData } from "~/lib/validation";
 import { MAX_RATING, MIN_RATING } from "~/lib/ratings";
 import { StarRating, StarRatingInput } from "~/components/star-rating";
@@ -446,7 +446,7 @@ function asDayString(when: Date) {
  */
 function getCancellationOffer(
   userId: number,
-  course: { id: number; price: number }
+  course: { id: number }
 ) {
   const purchase = getPurchaseForCourse(userId, course.id);
 
@@ -486,12 +486,7 @@ function getCancellationOffer(
 
   if (claimedSeat) return null;
 
-  // A purchasing-power price is given back at the price that was paid, not at
-  // the list price of the course.
-  const pppDiscount = getDiscountForCountry(purchase.country);
-  const amount = pppDiscount > 0 ? purchase.amountPaid : course.price;
-
-  return { amount, lastDayInWindow };
+  return { amount: getRefundAmount(purchase), lastDayInWindow };
 }
 
 const ratingSchema = z.object({
@@ -532,10 +527,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     enrolled = isUserEnrolled(currentUserId, course.id);
 
     if (enrolled) {
-      cancellation = getCancellationOffer(currentUserId, {
-        id: course.id,
-        price: courseWithDetails.price,
-      });
+      cancellation = getCancellationOffer(currentUserId, { id: course.id });
 
       progress = calculateProgress(currentUserId, course.id, false);
 
