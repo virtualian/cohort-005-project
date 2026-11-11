@@ -12,3 +12,4 @@ Friction reported by subagents. Dated; each entry cites its source.
 - 2026-11-11 (issue-6 agent report, PR #15): as of `e85bcd3`, the completed-lesson-count and seconds-watched queries are duplicated in `app/routes/courses.$slug.tsx` and `app/routes/courses.$slug.refund.ts` — a cost of keeping DB queries out of the pure seam. Candidate follow-up: one shared fact-gathering function.
 - 2026-11-11: no-CI gap filed as issue #16 (needs-triage), not yet scheduled.
 - 2026-11-11: no-CI gap closed by PR #19 (`c255353`); see [[delivery-process]]. Note from the #16 agent: setup-node v7 needs `cache: npm` set explicitly because `package.json` has no `packageManager` field; agents may run a local Node (v26.8.2 seen) that differs from CI's 22.
+- 2026-11-11 (Dependabot API, after PR #20): zod high alert fixed. Still open: medium minimatch, postcss-selector-parser, esbuild; low deepmerge. Not scheduled.
