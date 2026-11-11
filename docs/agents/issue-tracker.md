@@ -13,6 +13,20 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Target the `origin` remote's repo, never `ai-hero-dev/cohort-005-project`. `gh` does not reliably pick `origin`: when it can't prompt, it prefers a remote named `upstream`, and `npm run reset`/`cherry-pick` add one pointing at the course repo. Check with `gh repo set-default --view`; if it isn't `origin`'s repo, run `gh repo set-default <origin owner/repo>` (or pass `-R <origin owner/repo>`).
 
+## Triage labels
+
+`/triage` roles map 1:1 to label names in the repo:
+
+| Role | Label |
+| --- | --- |
+| category: bug | `bug` |
+| category: enhancement | `enhancement` |
+| state: needs-triage | `needs-triage` |
+| state: needs-info | `needs-info` |
+| state: ready-for-agent | `ready-for-agent` |
+| state: ready-for-human | `ready-for-human` |
+| state: wontfix | `wontfix` |
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
