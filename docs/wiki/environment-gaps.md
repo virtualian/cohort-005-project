@@ -13,3 +13,4 @@ Friction reported by subagents. Dated; each entry cites its source.
 - 2026-11-11: no-CI gap filed as issue #16 (needs-triage), not yet scheduled.
 - 2026-11-11: no-CI gap closed by PR #19 (`c255353`); see [[delivery-process]]. Note from the #16 agent: setup-node v7 needs `cache: npm` set explicitly because `package.json` has no `packageManager` field; agents may run a local Node (v26.8.2 seen) that differs from CI's 22.
 - 2026-11-11 (Dependabot API, after PR #20): zod high alert fixed. Still open: medium minimatch, postcss-selector-parser, esbuild; low deepmerge. Not scheduled.
+- 2026-11-11 15:34 (supersedes the "skills not installed" entry above): `retro`, `to-spec` and `to-tickets` are present in `~/.claude/skills/` (copied, not symlinked) and recorded in `~/.agents/.skill-lock.json` from `mattpocock/skills`. chief-of-staff's `../<skill>/SKILL.md` paths resolve. Not installed by a chief-of-staff agent; source of the install not checked.
