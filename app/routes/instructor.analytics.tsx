@@ -11,6 +11,7 @@ import {
   gte,
   inArray,
   isNull,
+  max,
   ne,
   notExists,
   or,
@@ -36,7 +37,11 @@ import {
   quizzes,
   users,
 } from "~/db/schema";
-import { splitRevenue, type AnalyticsRange } from "~/lib/analytics";
+import {
+  countCourseCompletions,
+  splitRevenue,
+  type AnalyticsRange,
+} from "~/lib/analytics";
 import { getDiscountForCountry } from "~/lib/ppp";
 import {
   ANALYTICS_RANGES,
@@ -498,6 +503,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     .select({
       userId: enrollments.userId,
       completed: countDistinct(lessonProgress.lessonId),
+      completedAt: max(enrollments.completedAt),
     })
     .from(enrollments)
     .leftJoin(
@@ -512,12 +518,16 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     .groupBy(enrollments.userId)
     .all();
 
+  // Course Completion is the recorded value on the Enrollment, not a
+  // recount of Lesson Progress: it stands even after Lessons are added.
+  const finishedCount = countCourseCompletions(perStudent);
+
   if (perStudent.length === 0 || totalLessons === 0) {
     return {
       enrolledCount: perStudent.length,
       totalLessons,
       averageProgressPercent: null,
-      finishedCount: 0,
+      finishedCount,
     };
   }
 
@@ -530,9 +540,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     enrolledCount: perStudent.length,
     totalLessons,
     averageProgressPercent: Math.round(totalPercent / perStudent.length),
-    finishedCount: perStudent.filter(
-      (student) => student.completed >= totalLessons
-    ).length,
+    finishedCount,
   };
 }
 
