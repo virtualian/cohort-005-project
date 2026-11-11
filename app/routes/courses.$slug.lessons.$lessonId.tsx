@@ -15,6 +15,7 @@ import {
   categories,
   comments,
   courses,
+  enrollments,
   lessonProgress,
   lessons,
   modules,
@@ -55,6 +56,7 @@ import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
 import { COUNTRIES } from "~/lib/ppp";
 import { isPassingScore } from "~/lib/quiz";
+import { shouldRecordCourseCompletion } from "~/lib/course-completion";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 const lessonParamsSchema = z.object({
@@ -241,6 +243,48 @@ function markLessonComplete(userId: number, lessonId: number) {
     })
     .returning()
     .get();
+}
+
+/**
+ * Records Course Completion on the Student's Enrollment once every Lesson in
+ * the Course is completed. A recorded value is never changed or cleared.
+ */
+function recordCourseCompletionIfReached(userId: number, courseId: number) {
+  const enrollment = db
+    .select({ id: enrollments.id, completedAt: enrollments.completedAt })
+    .from(enrollments)
+    .where(
+      and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId))
+    )
+    .get();
+
+  if (!enrollment) return;
+
+  const totalLessons = db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .innerJoin(modules, eq(lessons.moduleId, modules.id))
+    .where(eq(modules.courseId, courseId))
+    .all().length;
+
+  const completedLessons = getLessonProgressForCourse(userId, courseId).filter(
+    (progress) => progress.status === LessonProgressStatus.Completed
+  ).length;
+
+  if (
+    !shouldRecordCourseCompletion({
+      existingCompletedAt: enrollment.completedAt,
+      totalLessons,
+      completedLessons,
+    })
+  ) {
+    return;
+  }
+
+  db.update(enrollments)
+    .set({ completedAt: new Date().toISOString() })
+    .where(eq(enrollments.id, enrollment.id))
+    .run();
 }
 
 function markLessonInProgress(userId: number, lessonId: number) {
@@ -947,6 +991,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   if (intent === "mark-complete") {
     markLessonComplete(currentUserId, lessonId);
+    recordCourseCompletionIfReached(currentUserId, course.id);
     return { success: true };
   }
 

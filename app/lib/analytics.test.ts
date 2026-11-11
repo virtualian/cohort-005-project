@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   ANALYTICS_RANGES,
+  countCourseCompletions,
   DEFAULT_ANALYTICS_RANGE,
   PLATFORM_FEE_PERCENT,
   PLATFORM_FEE_RATE,
@@ -181,5 +182,24 @@ describe("analytics config", () => {
       expect(formatBucket("2026-13-05").trim()).toBe("5");
       expect(formatBucket("2026-99").trim()).toBe("26");
     });
+  });
+});
+
+describe("countCourseCompletions", () => {
+  it("counts the Enrollments with a recorded Course Completion", () => {
+    // Lesson Progress is not consulted: an Enrollment counts once its
+    // completedAt is set, even if Lessons were added to the Course since.
+    expect(
+      countCourseCompletions([
+        { completedAt: "2026-01-01T00:00:00.000Z" },
+        { completedAt: null },
+        { completedAt: "2026-02-01T00:00:00.000Z" },
+      ])
+    ).toBe(2);
+  });
+
+  it("is zero when no Enrollment has a Course Completion", () => {
+    expect(countCourseCompletions([])).toBe(0);
+    expect(countCourseCompletions([{ completedAt: null }])).toBe(0);
   });
 });
