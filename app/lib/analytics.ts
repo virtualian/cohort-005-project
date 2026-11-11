@@ -92,6 +92,19 @@ export function formatBucket(bucket: string): string {
 }
 
 /**
+ * How many Enrollments have reached Course Completion.
+ *
+ * Reads the recorded `completedAt`, not Lesson Progress: Course Completion
+ * stands once recorded, even if Lessons are added to the Course later.
+ */
+export function countCourseCompletions(
+  enrollments: { completedAt: string | null }[]
+): number {
+  return enrollments.filter((enrollment) => enrollment.completedAt !== null)
+    .length;
+}
+
+/**
  * Splits gross revenue into the platform's fee and the instructor's net.
  *
  * Net is gross minus the rounded fee rather than a second independent
