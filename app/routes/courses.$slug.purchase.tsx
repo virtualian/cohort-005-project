@@ -190,14 +190,14 @@ function createPurchase(
     .get();
 }
 
-function getTeamForAdmin(userId: number) {
+function getTeamForManager(userId: number) {
   const membership = db
     .select()
     .from(teamMembers)
     .where(
       and(
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, TeamMemberRole.Admin)
+        eq(teamMembers.role, TeamMemberRole.Manager)
       )
     )
     .get();
@@ -208,18 +208,18 @@ function getTeamForAdmin(userId: number) {
 }
 
 function getOrCreateTeamForUser(userId: number) {
-  const existingTeam = getTeamForAdmin(userId);
+  const existingTeam = getTeamForManager(userId);
   if (existingTeam) return existingTeam;
 
   const team = db.insert(teams).values({}).returning().get();
   db.insert(teamMembers)
-    .values({ teamId: team.id, userId, role: TeamMemberRole.Admin })
+    .values({ teamId: team.id, userId, role: TeamMemberRole.Manager })
     .returning()
     .get();
   return team;
 }
 
-function generateCoupons(
+function generateSeats(
   teamId: number,
   courseId: number,
   purchaseId: number,
@@ -227,7 +227,7 @@ function generateCoupons(
 ) {
   const created: (typeof coupons.$inferSelect)[] = [];
   for (let i = 0; i < quantity; i++) {
-    const coupon = db
+    const seat = db
       .insert(coupons)
       .values({
         teamId,
@@ -237,7 +237,7 @@ function generateCoupons(
       })
       .returning()
       .get();
-    created.push(coupon);
+    created.push(seat);
   }
   return created;
 }
@@ -251,8 +251,8 @@ function createTeamPurchase(
 ) {
   const purchase = createPurchase(userId, courseId, amountPaid, country);
   const team = getOrCreateTeamForUser(userId);
-  const teamCoupons = generateCoupons(team.id, courseId, purchase.id, quantity);
-  return { purchase, team, coupons: teamCoupons };
+  const teamSeats = generateSeats(team.id, courseId, purchase.id, quantity);
+  return { purchase, team, seats: teamSeats };
 }
 
 const purchaseParamsSchema = z.object({
@@ -502,13 +502,13 @@ export default function PurchaseConfirmation({
                         {isDiscounted ? (
                           <>
                             <span className="text-sm text-muted-foreground">
-                              Original price
+                              List Price
                             </span>
                             <div className="text-lg text-muted-foreground line-through">
                               {formatPrice(course.price)}
                             </div>
                             <span className="text-sm text-muted-foreground">
-                              Your price
+                              PPP Price
                             </span>
                             <div className="text-3xl font-bold">
                               {formatPrice(pppPrice)}
@@ -588,10 +588,10 @@ export default function PurchaseConfirmation({
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      You&apos;ll receive {quantity} unique coupon{" "}
-                      {quantity === 1 ? "link" : "links"} to share with your
-                      team members. Each link grants one person access to this
-                      course.
+                      You&apos;ll receive {quantity}{" "}
+                      {quantity === 1 ? "Seat Code" : "Seat Codes"}, each a
+                      link to share with your team. Each Seat Code lets one
+                      person Claim a Seat on this course.
                     </p>
 
                     <div className="flex items-center gap-3">

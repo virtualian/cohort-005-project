@@ -1117,7 +1117,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
           <ShieldAlert className="mx-auto mb-4 size-16 text-amber-500" />
           <h1 className="mb-3 text-2xl font-bold">Access Restricted</h1>
           <p className="mb-4 text-muted-foreground">
-            You purchased this course with a Purchasing Power Parity discount
+            You purchased this course with a PPP Discount
             while in <strong>{purchaseCountryName}</strong>, but you're
             currently accessing from <strong>{currentCountryName}</strong>.
           </p>

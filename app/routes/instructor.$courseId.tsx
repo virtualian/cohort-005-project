@@ -1971,7 +1971,7 @@ export default function InstructorCourseEditor({
 
                   <div
                     className="flex items-center gap-2"
-                    title="Purchasing Power Parity: applies location-based discounts for students in lower-income countries"
+                    title="PPP Discount: lowers the price for students in lower-income countries"
                   >
                     <Globe className="size-4 text-muted-foreground" />
                     <span className="text-sm font-medium">PPP:</span>

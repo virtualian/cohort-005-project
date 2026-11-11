@@ -347,7 +347,7 @@ export function CommentThread({
 }: {
   comments: RenderedComment[];
   currentUserId: number | null;
-  /** Owning instructor or admin — may delete anyone's comment. */
+  /** Course Owner or Admin (Staff) — may delete anyone's comment. */
   canModerate: boolean;
   canPost: boolean;
   instructorName: string;
@@ -364,7 +364,7 @@ export function CommentThread({
           <div className="rounded-lg border border-dashed p-6 text-center">
             <p className="font-medium">Stuck on this lesson?</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Ask here — {instructorName} answers questions in this course.
+              Ask here — {instructorName} replies to questions in this course.
               There&apos;s no such thing as a question that&apos;s too basic.
             </p>
           </div>

@@ -55,9 +55,9 @@ export type Access = {
   userId: number | null;
   user: ReturnType<typeof getUserById>;
   isAdmin: boolean;
-  /** The instructor who owns this specific course. */
-  isOwningInstructor: boolean;
-  /** Owning instructor or admin — the people who speak for the course. */
+  /** The Course Owner of this specific course. */
+  isCourseOwner: boolean;
+  /** Course Owner or Admin (Staff) — the people who speak for the course. */
   isStaff: boolean;
   enrolled: boolean;
   pppBlocked: boolean;
@@ -74,7 +74,7 @@ const SIGNED_OUT: Access = {
   userId: null,
   user: undefined,
   isAdmin: false,
-  isOwningInstructor: false,
+  isCourseOwner: false,
   isStaff: false,
   enrolled: false,
   pppBlocked: false,
@@ -95,8 +95,8 @@ export async function getAccess(
 
   const course = getCourseById(courseId);
   const isAdmin = user.role === UserRole.Admin;
-  const isOwningInstructor = course?.instructorId === userId;
-  const isStaff = isAdmin || isOwningInstructor;
+  const isCourseOwner = course?.instructorId === userId;
+  const isStaff = isAdmin || isCourseOwner;
   const enrolled = isUserEnrolled(userId, courseId);
 
   // PPP only restricts students who bought at a discount — staff are exempt.
@@ -121,7 +121,7 @@ export async function getAccess(
     userId,
     user,
     isAdmin,
-    isOwningInstructor,
+    isCourseOwner,
     isStaff,
     enrolled,
     pppBlocked: ppp.blocked,

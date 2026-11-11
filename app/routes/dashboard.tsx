@@ -414,7 +414,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                       >
                         <Button className="w-full" variant="outline">
                           <BookOpen className="mr-2 size-4" />
-                          Review Course
+                          Revisit Course
                         </Button>
                       </Link>
                     </CardFooter>
