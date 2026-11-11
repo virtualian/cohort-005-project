@@ -1,5 +1,5 @@
 import { data } from "react-router";
-import type { z } from "zod";
+import { z } from "zod";
 
 type ParseSuccess<T> = { success: true; data: T };
 type ParseFailure = {
@@ -23,15 +23,7 @@ export function parseFormData<T extends z.ZodType>(
     return { success: true, data: result.data };
   }
 
-  const fieldErrors = result.error.flatten().fieldErrors;
-  const errors: Record<string, string> = {};
-  for (const [key, messages] of Object.entries(fieldErrors)) {
-    if (messages && messages.length > 0) {
-      errors[key] = messages[0];
-    }
-  }
-
-  return { success: false, errors };
+  return { success: false, errors: firstErrorPerField(result.error) };
 }
 
 /**
@@ -66,13 +58,22 @@ export async function parseJsonBody<T extends z.ZodType>(
     return { success: true, data: result.data };
   }
 
-  const fieldErrors = result.error.flatten().fieldErrors;
+  return { success: false, errors: firstErrorPerField(result.error) };
+}
+
+/**
+ * Maps each top-level field to its first error message.
+ * Errors with an empty path (form-level errors) are left out.
+ */
+function firstErrorPerField(error: z.ZodError): Record<string, string> {
+  // Typed as a plain string-keyed map: the helper serves every schema.
+  const fieldErrors: Record<string, string[] | undefined> =
+    z.flattenError(error).fieldErrors;
   const errors: Record<string, string> = {};
   for (const [key, messages] of Object.entries(fieldErrors)) {
     if (messages && messages.length > 0) {
       errors[key] = messages[0];
     }
   }
-
-  return { success: false, errors };
+  return errors;
 }
