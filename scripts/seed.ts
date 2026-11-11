@@ -2291,7 +2291,7 @@ This course is still in draft while the cluster examples are rewritten against t
     .values({
       teamId: team1.id,
       userId: bossy.id,
-      role: TeamMemberRole.Admin,
+      role: TeamMemberRole.Manager,
       createdAt: daysAgo(30),
     })
     .run();
@@ -2631,7 +2631,7 @@ This course is still in draft while the cluster examples are rewritten against t
       .values({
         teamId: team.id,
         userId: teamAdmin.id,
-        role: TeamMemberRole.Admin,
+        role: TeamMemberRole.Manager,
         createdAt: daysAgo(purchasedDaysAgo),
       })
       .run();

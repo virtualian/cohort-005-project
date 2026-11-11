@@ -29,7 +29,7 @@ const refundActionSchema = z.object({
   reason: z
     .string()
     .trim()
-    .min(10, "Tell us a little more about why you want to cancel.")
+    .min(10, "Tell us a little more about why you want a refund.")
     .max(1000, "Please keep your reason under 1000 characters."),
 });
 
@@ -109,25 +109,25 @@ function getSecondsWatched(userId: number, lessonIds: number[]) {
 }
 
 /**
- * The confirmation the learner gets in their inbox. There is no mail
+ * The confirmation the Buyer gets in their inbox. There is no mail
  * transport wired up yet, so the built message goes to the server log.
  */
-function buildReversalEmail(input: {
-  learnerName: string;
-  learnerEmail: string;
+function buildRefundRequestEmail(input: {
+  buyerName: string;
+  buyerEmail: string;
   courseTitle: string;
-  amount: number;
+  refundAmount: number;
 }) {
   return {
-    to: input.learnerEmail,
-    subject: `Reversal requested — ${input.courseTitle}`,
+    to: input.buyerEmail,
+    subject: `Refund Request received — ${input.courseTitle}`,
     body: [
-      `Hi ${input.learnerName},`,
+      `Hi ${input.buyerName},`,
       "",
-      `We have your Reversal request for "${input.courseTitle}".`,
-      `The Reversal is for ${formatPrice(input.amount)}, the amount you paid.`,
+      `We have your Refund Request for "${input.courseTitle}".`,
+      `The Refund Amount is ${formatPrice(input.refundAmount)}, the amount you paid.`,
       "",
-      "Our team reviews every Reversal by hand. You do not need to do anything else — we will email you again when it is done.",
+      "Our team reviews every Refund Request by hand. You do not need to do anything else — we will email you again when it is done.",
       "",
       "— The Cadence team",
     ].join("\n"),
@@ -138,7 +138,9 @@ export async function action({ params, request }: Route.ActionArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("You must be logged in to cancel a purchase.", { status: 401 });
+    throw data("You must be logged in to make a Refund Request.", {
+      status: 401,
+    });
   }
 
   const { slug } = parseParams(params, refundParamsSchema);
@@ -148,13 +150,13 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("Course not found", { status: 404 });
   }
 
-  const learner = db
+  const buyer = db
     .select()
     .from(users)
     .where(eq(users.id, currentUserId))
     .get();
 
-  if (!learner) {
+  if (!buyer) {
     throw data("User not found", { status: 404 });
   }
 
@@ -189,7 +191,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data(eligibility.reason, { status: 403 });
   }
 
-  const refundableAmount = getRefundAmount(purchase);
+  const refundAmount = getRefundAmount(purchase);
 
   const formData = await request.formData();
   const parsed = parseFormData(formData, refundActionSchema);
@@ -208,11 +210,11 @@ export async function action({ params, request }: Route.ActionArgs) {
     .returning()
     .get();
 
-  const email = buildReversalEmail({
-    learnerName: learner.name,
-    learnerEmail: learner.email,
+  const email = buildRefundRequestEmail({
+    buyerName: buyer.name,
+    buyerEmail: buyer.email,
     courseTitle: course.title,
-    amount: refundableAmount,
+    refundAmount,
   });
 
   console.log(

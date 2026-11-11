@@ -74,7 +74,7 @@ import { AlertTriangle, Rocket } from "lucide-react";
 // ─── Instructor Analytics ───
 // What an instructor earned, and when. Three money figures rather than one:
 // a lone number here gets read as "what I get paid", and the platform's 20%
-// cut makes that reading wrong.
+// Platform Fee makes that reading wrong.
 //
 // All page state — tab, range, instructor, course — lives in search params, so
 // a view can be linked to and reloaded. The loader reads them; the controls
@@ -132,10 +132,10 @@ type TopBuyer = {
   userId: number;
   name: string;
   email: string;
-  spendCents: number;
+  amountPaidCents: number;
   purchaseCount: number;
   seatsBought: number;
-  seatsUnredeemed: number;
+  seatsUnclaimed: number;
   enrolled: boolean;
 };
 
@@ -148,7 +148,7 @@ type CourseProgressSummary = {
   enrolledCount: number;
   totalLessons: number;
   averageProgressPercent: number | null;
-  finishedCount: number;
+  courseCompletionCount: number;
 };
 
 type FunnelLesson = {
@@ -323,7 +323,7 @@ function getTopBuyers(
       userId: users.id,
       name: users.name,
       email: users.email,
-      spend: sum(purchases.amountPaid),
+      amountPaid: sum(purchases.amountPaid),
       purchaseCount: count(purchases.id),
     })
     .from(purchases)
@@ -339,14 +339,14 @@ function getTopBuyers(
 
   const buyerIds = buyers.map((buyer) => buyer.userId);
 
-  // Seats are counted in their own query: joining coupons to purchases above
-  // would repeat each purchase once per seat and multiply the spend the
+  // Seats are counted in their own query: joining Seats to Purchases above
+  // would repeat each Purchase once per Seat and multiply the Amount Paid the
   // leaderboard ranks on.
   const seats = db
     .select({
       userId: purchases.userId,
       bought: count(coupons.id),
-      unredeemed: sql<number>`sum(case when ${coupons.redeemedByUserId} is null then 1 else 0 end)`,
+      unclaimed: sql<number>`sum(case when ${coupons.redeemedByUserId} is null then 1 else 0 end)`,
     })
     .from(coupons)
     .innerJoin(purchases, eq(coupons.purchaseId, purchases.id))
@@ -378,10 +378,10 @@ function getTopBuyers(
     userId: buyer.userId,
     name: buyer.name,
     email: buyer.email,
-    spendCents: Number(buyer.spend ?? 0),
+    amountPaidCents: Number(buyer.amountPaid ?? 0),
     purchaseCount: buyer.purchaseCount,
     seatsBought: seatsByUser.get(buyer.userId)?.bought ?? 0,
-    seatsUnredeemed: Number(seatsByUser.get(buyer.userId)?.unredeemed ?? 0),
+    seatsUnclaimed: Number(seatsByUser.get(buyer.userId)?.unclaimed ?? 0),
     enrolled: enrolled.has(buyer.userId),
   }));
 }
@@ -460,7 +460,7 @@ function getRevenueOverTime(
   );
 
   const now = new Date().toISOString();
-  // A fixed range always spans its whole window, even before the first sale;
+  // A fixed range always spans its whole window, even before the first Purchase;
   // all time can only start where the data does.
   const start = rangeStart(range) ?? rows[0].bucket;
 
@@ -520,14 +520,14 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
 
   // Course Completion is the recorded value on the Enrollment, not a
   // recount of Lesson Progress: it stands even after Lessons are added.
-  const finishedCount = countCourseCompletions(perStudent);
+  const courseCompletionCount = countCourseCompletions(perStudent);
 
   if (perStudent.length === 0 || totalLessons === 0) {
     return {
       enrolledCount: perStudent.length,
       totalLessons,
       averageProgressPercent: null,
-      finishedCount,
+      courseCompletionCount,
     };
   }
 
@@ -540,7 +540,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     enrolledCount: perStudent.length,
     totalLessons,
     averageProgressPercent: Math.round(totalPercent / perStudent.length),
-    finishedCount,
+    courseCompletionCount,
   };
 }
 
@@ -833,7 +833,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     ? requestedCourseId
     : null;
 
-  // Unanswered questions. A question qualifies when it is top-level, not
+  // Unanswered Questions. A Comment qualifies when it is top-level, not
   // deleted, not written by staff, and has no reply from the course's
   // instructor or an admin.
   const questionsSince = rangeStart(range);
@@ -888,7 +888,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
 
   // sum() is null over an empty set; count() is already 0.
   const questionsInRange = Number(questionRow?.inRange ?? 0);
-  const questions = {
+  const unansweredQuestions = {
     inRange: questionsInRange,
     older: (questionRow?.total ?? 0) - questionsInRange,
   };
@@ -910,7 +910,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     purchaseCount: summaryRow?.purchaseCount ?? 0,
   };
 
-  // Revenue broken down by course, biggest earner first. Courses with no sales
+  // Revenue broken down by course, biggest earner first. Courses with no Purchases
   // in the range are absent rather than listed at zero.
   const courseRevenueRows = db
     .select({
@@ -936,7 +936,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
 
   // How many people paid, and how many are learning. Deliberately two numbers:
   // one team purchase is a single buyer covering several seats, and someone who
-  // redeems a seat enrols without a purchase row of their own.
+  // Claims a Seat enrols without a Purchase row of their own.
   const buyerCountRow = db
     .select({ buyerCount: countDistinct(purchases.userId) })
     .from(purchases)
@@ -989,9 +989,9 @@ export async function loader({ request, url }: Route.LoaderArgs) {
           .get();
 
   return {
-    // Split rather than filtered: the range applies, but questions older than
+    // Split rather than filtered: the range applies, but Unanswered Questions older than
     // it are still reported, because months of silence is the urgent case.
-    questions,
+    unansweredQuestions,
     audience,
     buyers: getTopBuyers(instructorId, range),
     ratings: getRatingSummary(instructorId, range),
@@ -1122,7 +1122,7 @@ function TopBuyers({
           <th className="pb-2 font-medium">Buyer</th>
           <th className="pb-2 font-medium">Seats</th>
           <th className="pb-2 text-right font-medium">Purchases</th>
-          <th className="pb-2 text-right font-medium">Total spend</th>
+          <th className="pb-2 text-right font-medium">Amount Paid</th>
         </tr>
       </thead>
       <tbody>
@@ -1140,11 +1140,11 @@ function TopBuyers({
                   </span>{" "}
                   <span className="text-xs text-muted-foreground">
                     bought {buyer.seatsBought},{" "}
-                    {buyer.seatsUnredeemed > 0 ? (
+                    {buyer.seatsUnclaimed > 0 ? (
                       // The prompt to chase: seats paid for that nobody is
                       // using are the most actionable thing on this table.
                       <span className="font-medium text-foreground">
-                        {buyer.seatsUnredeemed} unused
+                        {buyer.seatsUnclaimed} unclaimed
                       </span>
                     ) : (
                       "all claimed"
@@ -1152,7 +1152,7 @@ function TopBuyers({
                   </span>
                 </div>
               )}
-              {/* Said of team buyers too, not just solo ones: the manager who
+              {/* Said of team buyers too, not just solo ones: the Buyer who
                   bought a dozen seats and never opened the course is the very
                   person this table exists to surface. */}
               <div className="text-xs text-muted-foreground">
@@ -1163,7 +1163,7 @@ function TopBuyers({
               {buyer.purchaseCount}
             </td>
             <td className="py-3 text-right font-medium tabular-nums">
-              {formatMoney(buyer.spendCents)}
+              {formatMoney(buyer.amountPaidCents)}
             </td>
           </tr>
         ))}
@@ -1261,10 +1261,10 @@ function CourseProgress({ progress }: { progress: CourseProgressSummary }) {
       <Card>
         <CardContent className="p-6">
           <div className="text-sm font-medium text-muted-foreground">
-            Students finished <span className="font-normal">· all time</span>
+            Course Completions <span className="font-normal">· all time</span>
           </div>
           <div className="mt-2 text-3xl font-bold">
-            {progress.finishedCount}
+            {progress.courseCompletionCount}
           </div>
           {/* A count, and deliberately not a third percentage: several
               defensible completion rates exist, they disagree, and naming one
@@ -1429,12 +1429,12 @@ function QuizPassRates({ quizzes }: { quizzes: QuizPassRate[] }) {
   );
 }
 
-/** Where a course's buyers are, and what parity pricing costs the seller. */
+/** Where a course's Buyers are, and what the PPP Discount costs the Course Owner. */
 function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   if (breakdown.rows.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no sales in this period, so there is nowhere to break
+        This course has no Purchases in this period, so there is nowhere to break
         down yet.
       </p>
     );
@@ -1443,20 +1443,20 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   return (
     <>
       <p className="mb-4 text-sm text-muted-foreground">
-        {/* The headline the panel exists for: parity discounting is otherwise
+        {/* The headline the panel exists for: the PPP Discount is otherwise
             invisible, though it directly sets what the instructor earns — so
             the figure is stated in net, the money they actually keep. */}
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
-        {breakdown.discountedSharePercent}%) came from countries with a parity
-        discount. Averages are what a sale there actually fetched — list prices
+        {breakdown.discountedSharePercent}%) came from countries with a PPP
+        Discount. Averages are what a Purchase there actually fetched — List Prices
         change and are not kept, so no discount is reconstructed per purchase.
       </p>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th className="pb-2 font-medium">Country</th>
-            <th className="pb-2 text-right font-medium">Sales</th>
+            <th className="pb-2 text-right font-medium">Purchases</th>
             <th className="pb-2 text-right font-medium">Average paid</th>
             <th className="pb-2 text-right font-medium">Gross</th>
             <th className="pb-2 text-right font-medium">Net</th>
@@ -1528,7 +1528,7 @@ export default function InstructorAnalytics({
     unpublished,
     audience,
     buyers,
-    questions,
+    unansweredQuestions,
     ratings,
   } = loaderData;
 
@@ -1548,7 +1548,7 @@ export default function InstructorAnalytics({
   const selectedCourse =
     courseOptions.find((course) => course.courseId === selectedCourseId) ??
     null;
-  // The revenue table narrows to the selected course. One with no sales in the
+  // The revenue table narrows to the selected course. One with no Purchases in the
   // range has no row at all, and the panel says so rather than sitting empty.
   const revenueRows = selectedCourse
     ? courses.filter((course) => course.courseId === selectedCourseId)
@@ -1623,7 +1623,7 @@ export default function InstructorAnalytics({
             <Rocket className="mx-auto mb-4 size-12 text-muted-foreground" />
             <p className="font-medium">No published courses yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-              Analytics start the moment you make your first sale. Publish your
+              Analytics start the moment you get your first Purchase. Publish your
               first course to get going.
             </p>
             <Link to="/instructor/new" className="mt-6 inline-block">
@@ -1650,7 +1650,7 @@ export default function InstructorAnalytics({
               <MoneyCard
                 label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`}
                 amountCents={summary.feeCents}
-                hint="Cadence's cut. Already deducted from your earnings."
+                hint="Cadence's Platform Fee. Already deducted from your earnings."
               />
               <MoneyCard
                 label="Your net earnings"
@@ -1670,7 +1670,7 @@ export default function InstructorAnalytics({
               <StatCard
                 label="Enrolled students"
                 value={audience.studentCount}
-                hint={`Learners with access, seats included.${
+                hint={`Students with access, Seat Holders included.${
                   audience.revenuePerStudentCents === null
                     ? ""
                     : ` ${formatMoney(
@@ -1680,27 +1680,27 @@ export default function InstructorAnalytics({
                 emptyHint="Nobody has enrolled in this period."
               />
               <StatCard
-                label="Unanswered questions"
-                value={questions.inRange}
+                label="Unanswered Questions"
+                value={unansweredQuestions.inRange}
                 hint={
-                  questions.older > 0
-                    ? `Plus ${questions.older} from before this period.`
+                  unansweredQuestions.older > 0
+                    ? `Plus ${unansweredQuestions.older} from before this period.`
                     : "Students waiting on a reply."
                 }
                 // Quiet this period is only good news if the backlog is empty
                 // too, so the older count keeps its place in the empty copy.
                 emptyHint={
-                  questions.older > 0
-                    ? `None this period, but ${questions.older} still waiting from before.`
+                  unansweredQuestions.older > 0
+                    ? `None this period, but ${unansweredQuestions.older} still waiting from before.`
                     : "Nothing is waiting on you."
                 }
                 action={
-                  questions.inRange + questions.older > 0 ? (
+                  unansweredQuestions.inRange + unansweredQuestions.older > 0 ? (
                     <Link
                       to="/instructor/questions"
                       className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
                     >
-                      Answer them
+                      Reply to them
                     </Link>
                   ) : null
                 }
@@ -1720,13 +1720,13 @@ export default function InstructorAnalytics({
                 <h2 className="mb-4 text-lg font-semibold">
                   Revenue over time
                 </h2>
-                {/* Keyed on the sales themselves, not on the points: a fixed
+                {/* Keyed on the Purchases themselves, not on the points: a fixed
                     range always spans its whole window, so an instructor with
-                    no sales would otherwise get a flat line along zero rather
+                    no Purchases would otherwise get a flat line along zero rather
                     than being told there is nothing there. */}
                 {summary.purchaseCount === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No Purchases in this period yet.
                   </p>
                 ) : (
                   <RevenueChart series={series} />
@@ -1738,7 +1738,7 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold">Top buyers</h2>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Your ten biggest spenders in this period — the people worth
+                  Your ten biggest Buyers by Amount Paid in this period — the people worth
                   reaching out to.
                 </p>
                 <TopBuyers buyers={buyers} />
@@ -1848,14 +1848,14 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 {revenueRows.length === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No Purchases in this period yet.
                   </p>
                 ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
                         <th className="pb-2 font-medium">Course</th>
-                        <th className="pb-2 text-right font-medium">Sales</th>
+                        <th className="pb-2 text-right font-medium">Purchases</th>
                         <th className="pb-2 text-right font-medium">Gross</th>
                         <th className="pb-2 text-right font-medium">
                           Fee ({PLATFORM_FEE_PERCENT}%)

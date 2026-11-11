@@ -156,7 +156,8 @@ function createComment(
     .get();
 }
 
-// A question sitting this long without an answer gets called out visually.
+// An Unanswered Question sitting this long without a Staff Reply gets called
+// out visually.
 const STALE_AFTER_DAYS = 3;
 
 const replySchema = z.object({
@@ -203,7 +204,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw data("Course not found", { status: 404 });
   }
 
-  // Answering as the course's voice — so it must be the course's own
+  // Replying as the course's voice — so it must be the course's own
   // instructor, or an admin.
   const access = await requireStaff(request, course.courseId);
 
@@ -307,7 +308,7 @@ function QuestionCard({ question }: { question: Question }) {
             name="body"
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="Answer this question..."
+            placeholder="Reply to this question..."
             rows={3}
             aria-label={`Reply to ${question.authorName}`}
           />
@@ -357,7 +358,7 @@ export default function InstructorQuestions({
           {isAdmin ? "Manage Courses" : "My Courses"}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Questions</span>
+        <span className="text-foreground">Unanswered Questions</span>
       </nav>
 
       <div className="mb-6">
@@ -376,7 +377,7 @@ export default function InstructorQuestions({
             <CheckCircle2 className="mx-auto mb-4 size-12 text-green-600" />
             <p className="font-medium">You&apos;re all caught up</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Every question on your courses has an answer.
+              Every question on your courses has a Staff Reply.
             </p>
           </CardContent>
         </Card>

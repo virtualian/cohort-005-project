@@ -6,8 +6,9 @@
 // database or the request.
 
 /**
- * The platform's cut of gross revenue. One constant, named once — the page
- * shows gross, fee and net side by side, and they must agree.
+ * The Platform Fee: the share of Gross Revenue the platform keeps. One
+ * constant, named once — the page shows gross, fee and net side by side, and
+ * they must agree.
  */
 export const PLATFORM_FEE_RATE = 0.2;
 
@@ -69,7 +70,7 @@ const MONTHS = [
 /**
  * Cents as money — always with the cents shown, and always with a currency
  * symbol. Deliberately not `formatPrice`, which renders 0 as "Free": a day
- * with no sales is $0.00, not free.
+ * with no Purchases is $0.00, not free.
  */
 export function formatMoney(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", {
