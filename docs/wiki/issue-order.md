@@ -25,3 +25,5 @@ On 2026-11-11 #2 merged as PR #17 (`virtualian/cohort-005-project@0453bde`), 20 
 On 2026-11-11 the owner approved: #16 to ready-for-agent with Node 22 in `.nvmrc` and a required check on `main` enforced for admins; zod 4 migration filed as #18 (replaces Dependabot PR #1, which is closed once #18 merges). #16 and #18 dispatched in parallel.
 
 On 2026-11-11 #16 merged as PR #19 (`virtualian/cohort-005-project@c255353`): workflow job `verify` (npm ci → typecheck → test), Node from `.nvmrc` (22). Branch protection on `main` read back: required context `verify`, `enforce_admins` true, `strict` false, no required reviews.
+
+On 2026-11-11 #18 merged as PR #20 (`virtualian/cohort-005-project@21ecb29`): zod ^4.6.7, shadcn ^4.23.0. As of that commit `firstErrorPerField` in `app/lib/validation.ts` uses `z.flattenError(error).fieldErrors` with a `Record<string, string[] | undefined>` annotation (no cast); `app/lib/validation.test.ts` pins the error map and passed on zod 3.25.76 and 4.6.7. Dependabot PR #1 closed in favour of #20. The wiki itself merged as PR #21 (`44bf841`), the first PR through the required `verify` check. Queue empty as of 2026-11-11.
