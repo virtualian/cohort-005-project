@@ -223,6 +223,16 @@ _Avoid_: Review
 - A **Refund Request** belongs to exactly one **Purchase**; a Claimed **Seat** blocks one.
 - A **Quiz** has many **Quiz Questions**; an **Attempt** records one **Quiz Answer** per **Quiz Question**.
 
+## Storage names
+
+Some tables, columns, stored values and URLs keep older names, and are not renamed (see `.out-of-scope/storage-name-renames.md`). They are not glossary terms. Don't use them in new code or copy.
+
+- `coupons` table: **Seat**s and their **Seat Code**s.
+- `redeemed_at`, `redeemed_by_user_id`: when and by whom a **Seat** was **Claimed**.
+- `/redeem/:code`: the URL for **Claiming** a **Seat Code**.
+- `refunds` table: **Refund Request**s, including Declined ones.
+- `TeamMemberRole` value `admin`: **Team Manager**.
+
 ## Example dialogue
 
 > **Dev:** "The Student wants to cancel — can they?"
