@@ -143,7 +143,7 @@ The money returned to a Buyer when a Refund Request is Approved.
 _Avoid_: Reversal, chargeback
 
 **Refund Amount**:
-The money a Refund Request would return.
+The money a Refund Request would return: always the Purchase's Amount Paid, including every Seat of a Team Purchase.
 _Avoid_: Refundable amount, cancellation amount
 
 **Refund Window**:
@@ -168,7 +168,7 @@ A payment dispute raised by a Buyer through their card issuer. Not a Refund Requ
 A Student's state on a Lesson: Not Started, In Progress or Completed.
 
 **Course Completion**:
-A Student having completed every Lesson in a Course.
+A Student having completed every Lesson in a Course. Once reached it stands, even if Lessons are added later.
 _Avoid_: Finished
 
 **Drop-off**:
