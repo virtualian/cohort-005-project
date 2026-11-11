@@ -54,6 +54,7 @@ import { YouTubePlayer } from "~/components/youtube-player";
 import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
 import { COUNTRIES } from "~/lib/ppp";
+import { isPassingScore } from "~/lib/quiz";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 const lessonParamsSchema = z.object({
@@ -596,7 +597,7 @@ function computeResult(userId: any, quizId: any, selectedAnswers: any): any {
     }
 
     const scoreValue = total > 0 ? correct / total : 0;
-    const passed = scoreValue > 0.7;
+    const passed = isPassingScore(scoreValue, quiz.passingScore);
     const grade = calculateGrade(scoreValue);
 
     const attempt = db
