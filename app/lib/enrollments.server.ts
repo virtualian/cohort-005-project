@@ -110,6 +110,8 @@ export async function notifyInstructorOfEnrollment(
   const recipient = findNotificationPerson(db, course.instructorId);
   const actor = findNotificationPerson(db, enrollment.userId);
   if (!recipient || !actor) return;
+  // An Instructor who enrolled on their own course already knows.
+  if (recipient.id === actor.id) return;
 
   await sendSafely(
     notifications,

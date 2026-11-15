@@ -161,6 +161,19 @@ describe("the new Enrollment Notification", () => {
     ]);
   });
 
+  it("is not sent when the Instructor enrols on their own course", async () => {
+    const result = await enrollStudent(
+      db,
+      base.instructor.id,
+      base.course.id,
+      NOW,
+      notifications
+    );
+
+    expect(result.ok).toBe(true);
+    expect(notifications.sent).toEqual([]);
+  });
+
   it("is not sent when the Enrollment is refused", async () => {
     await enrollStudent(db, base.user.id, base.course.id, NOW, notifications);
     notifications.sent.length = 0;
