@@ -48,7 +48,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<
     description: "When a Refund Request you raised is received or decided.",
   },
   seatClaims: {
-    label: "Claimed Seats",
+    label: "Seat claims",
     description: "When someone claims a Seat on your Team Licence.",
   },
   enrollments: {
