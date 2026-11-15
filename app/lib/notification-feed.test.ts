@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   badgeLabel,
   clickNotification,
+  parseFeedNotification,
   unreadAmong,
 } from "./notification-feed";
 
@@ -65,5 +66,62 @@ describe("badgeLabel", () => {
   it("caps at 9+ above nine", () => {
     expect(badgeLabel(10)).toBe("9+");
     expect(badgeLabel(250)).toBe("9+");
+  });
+});
+
+describe("parseFeedNotification", () => {
+  const envelope = {
+    id: "n1",
+    actor: { name: "Ben", avatarUrl: null },
+    insertedAt: "2026-10-01T10:00:00.000Z",
+    readAt: null,
+    seenAt: null,
+  };
+
+  it("reads a Seat claimed entry", () => {
+    const data = {
+      seatId: 7,
+      courseId: 3,
+      courseTitle: "Test Course",
+      seatsLeft: 2,
+      url: "/team",
+    };
+
+    expect(
+      parseFeedNotification({ ...envelope, kind: "seat-claimed", data })
+    ).toEqual({ ...envelope, kind: "seat-claimed", data });
+  });
+
+  it("reads a Refund Request confirmation, which has no actor or url", () => {
+    const data = {
+      refundRequestId: 4,
+      courseTitle: "Test Course",
+      amount: "$79.00",
+    };
+
+    expect(
+      parseFeedNotification({
+        ...envelope,
+        actor: null,
+        kind: "refund-requested",
+        data,
+      })
+    ).toEqual({ ...envelope, actor: null, kind: "refund-requested", data });
+  });
+
+  it("drops an entry of a kind Cadence doesn't know", () => {
+    expect(
+      parseFeedNotification({ ...envelope, kind: "badge-earned", data: {} })
+    ).toBeNull();
+  });
+
+  it("drops an entry whose data doesn't match its kind", () => {
+    expect(
+      parseFeedNotification({
+        ...envelope,
+        kind: "seat-claimed",
+        data: { seatId: 7, courseTitle: "Test Course" },
+      })
+    ).toBeNull();
   });
 });
