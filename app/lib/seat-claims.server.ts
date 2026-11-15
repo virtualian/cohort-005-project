@@ -147,6 +147,8 @@ async function notifyTeamAdmin(
   const recipient = purchase && findNotificationPerson(db, purchase.userId);
   const actor = findNotificationPerson(db, seat.redeemedByUserId);
   if (!recipient || !actor || !course) return;
+  // A Team Admin who claimed a Seat on their own Team Licence already knows.
+  if (recipient.id === actor.id) return;
 
   await sendSafely(
     notifications,

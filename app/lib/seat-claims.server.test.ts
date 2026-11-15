@@ -254,6 +254,15 @@ describe("the Seat claim Notification", () => {
     ]);
   });
 
+  it("does not tell the Team Admin about claiming a Seat themselves", async () => {
+    const { seats } = buySeats(2);
+
+    const result = await claimSeat(db, seats[0].code, teamAdmin.id, "GB", NOW, notifications);
+
+    expect(result.ok).toBe(true);
+    expect(sentOfKind("seat-claimed")).toEqual([]);
+  });
+
   it("sends nothing for a Seat on hold", async () => {
     const { purchase, seats } = buySeats(2);
     raise(purchase.id);
