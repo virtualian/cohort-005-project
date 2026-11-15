@@ -573,6 +573,22 @@ describe("the Refund Request Notifications", () => {
     });
   });
 
+  it("does not tell a Platform Admin about their own Open Refund Request", async () => {
+    const sam = db
+      .insert(schema.users)
+      .values({ name: "Sam Admin", email: "sam@example.com", role: UserRole.Admin })
+      .returning()
+      .get();
+    const purchase = buyForSelf(platformAdmin.id, 3, 7900);
+
+    await raise(purchase.id, platformAdmin.id);
+
+    expect(sentOf("refund-request-open").map((n) => n.recipient.id)).toEqual([sam.id]);
+    expect(sentOf("refund-requested").map((n) => n.recipient.id)).toEqual([
+      platformAdmin.id,
+    ]);
+  });
+
   it("tells the buyer their Individual Purchase refund was approved", async () => {
     const purchase = buyForSelf(base.user.id, 3, 7900);
     const id = await raise(purchase.id, base.user.id);

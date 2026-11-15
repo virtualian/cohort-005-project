@@ -414,6 +414,9 @@ export async function raiseRefundRequest(
     .where(eq(users.role, UserRole.Admin))
     .all();
   for (const platformAdmin of platformAdmins) {
+    // A Platform Admin who raised it already knows; their confirmation is
+    // the refund-requested Notification above.
+    if (platformAdmin.id === buyer.id) continue;
     await sendSafely(
       notifications,
       {
