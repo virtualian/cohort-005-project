@@ -589,6 +589,19 @@ describe("the Refund Request Notifications", () => {
     ]);
   });
 
+  it("does not tell a Platform Admin about deciding their own Refund Request", async () => {
+    const approvedPurchase = buyForSelf(platformAdmin.id, 3, 7900);
+    const approvedId = await raise(approvedPurchase.id, platformAdmin.id);
+    const declinedPurchase = buyForSelf(platformAdmin.id, 3, 7900);
+    const declinedId = await raise(declinedPurchase.id, platformAdmin.id);
+
+    await approveRefundRequest(db, approvedId, platformAdmin.id, null, NOW, notifications);
+    await declineRefundRequest(db, declinedId, platformAdmin.id, "No.", NOW, notifications);
+
+    expect(sentOf("refund-approved")).toEqual([]);
+    expect(sentOf("refund-declined")).toEqual([]);
+  });
+
   it("tells the buyer their Individual Purchase refund was approved", async () => {
     const purchase = buyForSelf(base.user.id, 3, 7900);
     const id = await raise(purchase.id, base.user.id);

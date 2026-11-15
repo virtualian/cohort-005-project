@@ -871,6 +871,8 @@ async function notifyDecision(
         .get()
     : undefined;
   if (!buyer || !course) return;
+  // A Platform Admin who decided their own Refund Request already knows.
+  if (decider?.id === buyer.id) return;
 
   const purchaseKind = kindOf(getSeats(db, purchase.id));
   const data = {
