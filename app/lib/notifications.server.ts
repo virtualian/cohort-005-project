@@ -3,10 +3,11 @@ import { eq } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "~/db/schema";
 import { users } from "~/db/schema";
-import type {
-  FeedCredentials,
-  NotificationData,
-  NotificationKind,
+import {
+  notificationDataSchemas,
+  type FeedCredentials,
+  type NotificationData,
+  type NotificationKind,
 } from "~/lib/notification-feed";
 import type { NotificationPreferences } from "~/lib/notification-preferences";
 
@@ -153,6 +154,8 @@ export async function archiveForCommentSafely(
 /**
  * Sends a Notification without ever throwing: a failure is logged, so the
  * action that caused it (posting a comment, enrolling, …) still succeeds.
+ * Data that doesn't match its kind's schema is logged and never sent, since
+ * the feed would drop it anyway.
  */
 export async function sendSafely(
   notifications: Notifications,
@@ -162,7 +165,18 @@ export async function sendSafely(
   await tolerateNotificationFailure(
     `Could not send ${idempotencyKey}`,
     undefined,
-    () => notifications.send(notification, idempotencyKey)
+    async () => {
+      const parsed = notificationDataSchemas[notification.kind].safeParse(
+        notification.data
+      );
+      if (!parsed.success) {
+        const issues = parsed.error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join("; ");
+        throw new Error(`Invalid ${notification.kind} data (${issues})`);
+      }
+      await notifications.send(notification, idempotencyKey);
+    }
   );
 }
 
